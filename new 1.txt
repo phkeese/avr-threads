@@ -1,0 +1,40 @@
+#include "stack_magic.hpp"
+#include "threads.hpp"
+
+NOINLINE USED void setReturn(uint8_t high, uint8_t low) {
+  char *ptr = (char*)(SP + 1);
+  ptr[0] = high;
+  ptr[1] = low;
+}
+
+NOINLINE USED void wrong_turn() {
+  Serial.println("You took the wrong turn!");
+  switchTask();
+  Serial.println("Back offroad!");
+  switchTask();
+}
+
+uint8_t low,high;
+uint16_t tmp;
+NOINLINE USED void switchTask(void) {
+  tmp = __builtin_return_address(0);
+  uint8_t *ptr = (char*)(SP + 2);
+  ptr[0] = high;
+  ptr[1] = low;
+  high = tmp >> 8;
+  low = (uint8_t) tmp;
+}
+  
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  uint16_t addr = &wrong_turn;
+  high = addr >> 8, low = (uint8_t) addr;
+  switchTask();
+  Serial.println("Now you are back on track!");
+  switchTask();
+  Serial.println("Final switch!");
+}
+
+void loop() {
+}
