@@ -41,7 +41,14 @@ void setup() {
 	Serial.println("Thread2: Prints every 3 Seconds");
 		
 	Threads::init(128);
+	Serial.println("Current SP: " + String(Threads::currentThread->stackptr,HEX));
 	Threads::createThread(thread1);
+	Serial.println("Next SP: " + String(Threads::currentThread->next->stackptr,HEX));
+	Serial.println("Next SB: " + String(Threads::currentThread->next->stackbase,HEX));
+	uint8_t *ptr = (uint8_t*) Threads::currentThread->next->stackbase;
+	Serial.println("Next entry high: " + String(ptr[Threads::settings.stackSize - 2],HEX));
+	Serial.println("Next entry: low: " + String(ptr[Threads::settings.stackSize - 1],HEX));
+	
 	Threads::createThread(thread2);
 }
 

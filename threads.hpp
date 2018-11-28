@@ -9,7 +9,6 @@ namespace Threads {
 	struct Thread {
 		uint16_t pid;
 		uint16_t sreg;
-		uint16_t address;
 		uint16_t stackptr;
 		uint16_t stackbase;
 		Thread *next;
