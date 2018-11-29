@@ -8,9 +8,8 @@ namespace Threads {
 	typedef struct Thread Thread;
 	struct Thread {
 		uint16_t pid;
-		uint16_t sreg;
 		uint16_t stackptr;
-		uint16_t stackbase;
+		uint8_t *stackbase;
 		Thread *next;
 	};
 
@@ -27,10 +26,12 @@ namespace Threads {
 	// Secondary management functions
 	uint16_t getNextPID();
 	Thread *getLastThread();
-	__attribute((noinline)) void switchThread();
+	uint8_t *initStack(uint8_t* stackbase);
 	
 	// Primary management functions
 	__attribute((noinline)) void init(uint16_t stackSize);
 	__attribute((noinline)) uint16_t createThread(void (*func)(void));
-	void yield();
+	__attribute((noinline)) void yield();
+	
+	__attribute((noinline)) void exit(void);
 }

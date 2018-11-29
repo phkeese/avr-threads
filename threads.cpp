@@ -15,40 +15,59 @@ namespace Threads {
 		settings.stackSize = stackSize;
 		currentThread = new Thread;
 		currentThread->pid = 0;
-		currentThread->sreg = SREG;
 		currentThread->stackptr = SP;
-		currentThread->stackbase = RAMEND;
+		currentThread->stackbase = (uint8_t*) RAMEND;
 		currentThread->next = currentThread;
 	}
 	
 	uint16_t createThread(void (*func)(void)) {
 		// Allocate required resources
 		uint8_t *newStack = new uint8_t[settings.stackSize];
-		Thread *newThread;
+		Thread *newThread = {0};
 		
 		// Prepare thread
 		newThread->pid = getNextPID();
-		newThread->stackbase = (uint16_t) newStack;
-		newThread->stackptr = (uint16_t) (newStack + settings.stackSize - 1 - 2); // The stack grows down, so we have to move the stack pointer to the start of the stack
-		newThread->sreg = SREG;
+		newThread->stackbase = newStack;
+		
+		// Get adjusted stack pointer and write entry address
+		uint8_t* stackptr = initStack(newStack);
+		Serial.println("SB: " + String((uint16_t)newStack));
+		Serial.println("SP: " + String((uint16_t) stackptr));
+		
+		uint16_t entryAddress = (uint16_t) func;
+		
+		// Because function pointers are big-endian, but ints are little-endian
+		stackptr[0] = (uint8_t) entryAddress;
+		stackptr[-1] = (uint8_t) (entryAddress >> 8);
+		stackptr -= 1;
+
+		newThread->stackptr = (uint16_t) stackptr;
 		
 		// Insert the new thread into the queue
 		newThread->next = currentThread;
 		getLastThread()->next = newThread;
 		
-		// Prepare the stack
-		// Write entry address
-		uint16_t newAddress = (uint16_t) func;
-		newStack[settings.stackSize - 1] = (uint8_t) newAddress; // The return address is stored in big-endian, while uint16_t is little-endian
-		newStack[settings.stackSize - 2] = (uint8_t) (newAddress >> 8);
-		// Decrease stackptr to simulate pushed registers
-		// newThread->stackptr -= 32;
-		
 		// Return PID for management purposes
 		return newThread->pid;
 	}
 		
+	void yield() {
+		SM_SAVE_CONTEXT()
 		
+		// Save stack of current thread
+		asm("cli");
+		currentThread->stackptr = SP;
+		
+		// Switch threads
+		currentThread = currentThread->next;
+		
+		// Restore stack of currentThread
+		asm("cli");
+		SP = currentThread->stackptr;
+		
+		SM_RESTORE_CONTEXT()
+	}
+	
 	// Private management functions
 	uint16_t getNextPID() {
 		uint16_t highestPID = 0;
@@ -67,47 +86,33 @@ namespace Threads {
 		return thread;
 	}		
 	
-	// void switchThread() {
-		// uint16_t *ptr;
-
-		// ptr = (uint16_t*)(SP + RETURN_ADDRESS_OFFSET);
+	uint8_t *initStack(uint8_t* stackbase) {
+		// We need to jump to the top of the stack and need a pointer
+		uint8_t *ptr = (uint8_t*) (stackbase + settings.stackSize - 1);
 		
-		// // Save current state
-		// currentThread->sreg = SREG;
-		// currentThread->address = ptr[0];
-		// currentThread->stackptr = SP;
+		// Write exit return address
+		uint16_t exitAddress = (uint16_t) Threads::exit;
+		ptr[0] = (uint8_t) exitAddress;
+		ptr[-1] = (uint8_t) (exitAddress >> 8);
+		ptr -= 2;
 		
-		// // Switch to next thread
-		// currentThread = currentThread->next;
+		// Simulate 32 pushed registers
+		for (int i = 0; i < 32; i++) {
+			ptr[-i] = 0;
+		}
+		ptr -= 32;
 		
-		// // Restore state
-		// asm("cli");
-		// SP = currentThread->stackptr;
-		// // asm("sei");
-		// *((uint16_t*)(SP + RETURN_ADDRESS_OFFSET)) = currentThread->address;
-		// SREG = currentThread->sreg;		
-	// }
-	
-	void switchThread() {
-		// Save state of current thread
-		currentThread->sreg = SREG;
-		currentThread->stackptr = SP;
+		// Write pushed SREG
+		ptr[0] = SREG;
+		ptr--;
 		
-		// Switch pointer
-		currentThread = currentThread->next;
-		
-		// Load new stack pointer
-		// Interrupts have to be disabled for this step
-		asm("cli");
-		SP = currentThread->stackptr;
-		
-		// Restore SREG
-		SREG = currentThread->sreg;
+		// This should be it
+		return ptr;
 	}
-	
-	void yield() {
-		SM_PUSH_ALL_REGISTERS()
-		Threads::switchThread();
-		SM_POP_ALL_REGISTERS()
+		
+	void exit(void) {
+		while (1) {
+			Threads::yield();
+		}
 	}
 }

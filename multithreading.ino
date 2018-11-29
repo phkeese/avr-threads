@@ -1,72 +1,30 @@
 #include "threads.hpp"
 
-// int on = HIGH;
-// int pin = 13;
-
-// void threadedDelay(int timeout) {
-	// uint32_t now = millis();
-	// uint32_t then = now + timeout;
-	// while (millis() < then) {
-		// Threads::yield();
-	// }
-// }
-
-// THREAD thread1(void) {
-	// threadedDelay(500);
-	// while (1) {
-		// digitalWrite(pin,on);
-		// on = !on;
-		// threadedDelay(500);
-	// }
-// }
-
-// THREAD thread2(void) {
-	// while (1) {
-		// Serial.println("Thread2 every 3 Seconds");		
-		// threadedDelay(3000);
-	// }
-// }
-
-// THREAD threadNever(void) {
-	// Threads::yield();
-// }
-
-// void setup() {
-	// // put your setup code here, to run once:
-	// Serial.begin(2000000);
-	// Serial.println("Multithreading on the Arduino!");
-	// pinMode(pin,OUTPUT);
-	// Serial.println("Thread0: Prints every 1.2 Seconds");
-	// Serial.println("Thread1: Blinks every Second");
-	// Serial.println("Thread2: Prints every 3 Seconds");
-		
-	// Threads::init(128);
-	// Serial.println("Current SP: " + String(Threads::currentThread->stackptr,HEX));
-	// Threads::createThread(thread1);
-	// Serial.println("Next SP: " + String(Threads::currentThread->next->stackptr,HEX));
-	// Serial.println("Next SB: " + String(Threads::currentThread->next->stackbase,HEX));
-	// uint8_t *ptr = (uint8_t*) Threads::currentThread->next->stackbase;
-	// Serial.println("Next entry high: " + String(ptr[Threads::settings.stackSize - 2],HEX));
-	// Serial.println("Next entry: low: " + String(ptr[Threads::settings.stackSize - 1],HEX));
-	
-	// Threads::createThread(thread2);
-// }
-
-// void loop() {
-	// Serial.println("Thread0 every 1.2 Seconds");
-	// threadedDelay(1200);
-// }
+THREAD t1(void) {
+	while (1) {
+		Serial.println("Thread1");
+		Threads::yield();
+	}
+}
 
 void setup() {
 	Serial.begin(9600);
 	Serial.println("Before init()");
-	Threads::init(128);
+	Threads::init(100);
 	Serial.println("Before yield()");
-	Threads::yield();
+	// Threads::yield();
 	Serial.println("After yield()");
+	Threads::createThread(t1);
+	Serial.println("Next stackbase: " + String((uint16_t)Threads::currentThread->next->stackbase,HEX));
+	Serial.println("Next stackptr: " + String((uint16_t)Threads::currentThread->next->stackptr,HEX));
+	uint8_t *ptr = (uint8_t*) Threads::currentThread->next->stackptr;
+	for (int i = 0; i < 45; i++) {
+		Serial.println("SP + " + String(i) + ": " + String(ptr[i],HEX) + "(" + String((char) ptr[i]) + ")");
+	}
+	delay(100);
+	// Threads::yield();
 }
 
 void loop() {
-	Serial.println("Loop");
-	delay(1000);
+	// Serial.println("Loop"); Threads::yield();
 }
