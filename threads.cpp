@@ -13,7 +13,6 @@ namespace Threads {
 	// Public management functions
 	void init(uint16_t stackSize) {
 		settings.stackSize = stackSize;
-		
 		currentThread = new Thread;
 		currentThread->pid = 0;
 		currentThread->sreg = SREG;
