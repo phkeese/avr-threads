@@ -1,5 +1,5 @@
 # Using Threads with Arduino 
-Tipps and tricks for using Threads with the Arduino library.
+Tipps and tricks for using Threads with the Arduino library. You should still read [the manual.](https://github.com/greygraphics/avr-threads/blob/master/Manual.md)
 
 ### 1. Serial Communication
 You *can* use the methods provided by the `Serial` class, however there are some limitations.
