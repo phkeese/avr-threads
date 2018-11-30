@@ -5,9 +5,10 @@
 #define THREAD __attribute((used)) void
 
 namespace Threads {
+	typedef uint16_t PID;
 	typedef struct Thread Thread;
 	struct Thread {
-		uint16_t pid;
+		PID pid;
 		uint16_t stackptr;
 		uint8_t *stackbase;
 		Thread *next;
@@ -24,14 +25,15 @@ namespace Threads {
 	extern uint8_t high,low;
 
 	// Secondary management functions
-	uint16_t getNextPID();
+	PID getNextPID();
 	Thread *getLastThread();
 	uint8_t *initStack(uint8_t* stackbase, void (*entry)(void));
+	__attribute((noinline)) void exit(void);
+	Thread *getThreadByPID(PID pid);
 	
 	// Primary management functions
 	__attribute((noinline)) void init(uint16_t stackSize);
-	__attribute((noinline)) uint16_t createThread(void (*func)(void));
+	__attribute((noinline)) PID createThread(void (*func)(void));
+	__attribute((noinline)) void destroyThread(PID pid);
 	__attribute((noinline)) void yield();
-	
-	__attribute((noinline)) void exit(void);
 }

@@ -10,7 +10,7 @@ namespace Threads {
 	
 	Thread *currentThread;
 	
-	// Public management functions
+	// Primary management functions
 	void init(uint16_t stackSize) {
 		settings.stackSize = stackSize;
 		currentThread = new Thread;
@@ -20,7 +20,7 @@ namespace Threads {
 		currentThread->next = currentThread;
 	}
 	
-	uint16_t createThread(void (*func)(void)) {
+	PID createThread(void (*func)(void)) {
 		// Allocate required resources
 		uint8_t *newStack = new uint8_t[settings.stackSize];
 		Thread *newThread = new Thread;
@@ -40,7 +40,27 @@ namespace Threads {
 		// Return PID for management purposes
 		return newThread->pid;
 	}
+	
+	void destroyThread(PID pid) {
+		// Get selected thread
+		Thread *selected = getThreadByPID(pid);
+		if (selected == nullptr) {
+			return;
+		}
 		
+		// Get previous thread and close gap in queue
+		Thread *prev = currentThread;
+		while (prev->next != selected) {
+			prev = prev->next;
+		}
+		
+		prev->next = selected->next;
+		
+		// Free allocated memory for stack and thread
+		delete selected->stackbase;
+		delete selected;		
+	}
+	
 	void yield() {
 		SM_SAVE_CONTEXT()
 
@@ -58,8 +78,8 @@ namespace Threads {
 		SM_RESTORE_CONTEXT()
 	}
 	
-	// Private management functions
-	uint16_t getNextPID() {
+	// Secondary management functions
+	PID getNextPID() {
 		uint16_t highestPID = 0;
 		Thread *thread = currentThread;
 		while (thread->pid > highestPID) {
@@ -110,13 +130,16 @@ namespace Threads {
 		while (1) {
 			Threads::yield();
 		}
+	}	
+
+	Thread *getThreadByPID(PID pid) {
+		Thread *thread = currentThread;
+		while (thread->next != currentThread) {
+			thread = thread->next;
+			if (thread->pid == pid) {
+				return thread;
+			}
+		}
+		return nullptr;
 	}
-	
-	void switchContext(void) {
-		currentThread->stackptr = SP;
-		currentThread = currentThread->next;
-		asm("cli");
-		SP = currentThread->stackptr;
-	}
-	
 }
