@@ -40,11 +40,12 @@ int main(void) {
     }
 }
 ```
+A short manual can be found in ["Manual.md"](https://github.com/greygraphics/avr-threads/blob/master/Manual.md).
 
 # Arduino-compatible
 Threads does not use any timers or other peripherals, so using it with the Arduino IDE is as simple as including the header. 
 An example is provided in `multithreading.ino`  
-***Caution: Serial communication should be used sparringly, some functions will block other threads from running***
+Some tipps and tricks for using Threads with the Arduino library can be found in ["Arduino.md"](https://github.com/greygraphics/avr-threads/blob/master/Arduino.md).
 
 # Planned features:
 - A way of temporarily excluding threads from the queue
