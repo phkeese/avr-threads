@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <avr/io.h>
 #include "threads.hpp"
 #include "stack_magic.hpp"
