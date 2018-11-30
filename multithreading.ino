@@ -1,9 +1,18 @@
 #include "threads.hpp"
 
-THREAD t1(void) {
-	while (1) {
-		Serial.println("Thread1");
+void tdelay(uint32_t timeout) {
+	uint32_t now = millis();
+	uint32_t then = now + timeout;
+	while (millis() < then) {
 		Threads::yield();
+	}
+}
+
+THREAD t1(void) {
+	Serial.println("Thread1");
+	Threads::yield();
+	while (1) {
+		
 	}
 }
 
@@ -12,7 +21,7 @@ void setup() {
 	Serial.println("Before init()");
 	Threads::init(100);
 	Serial.println("Before yield()");
-	// Threads::yield();
+	Threads::yield();
 	Serial.println("After yield()");
 	Threads::createThread(t1);
 	Serial.println("Next stackbase: " + String((uint16_t)Threads::currentThread->next->stackbase,HEX));
@@ -22,9 +31,10 @@ void setup() {
 		Serial.println("SP + " + String(i) + ": " + String(ptr[i],HEX) + "(" + String((char) ptr[i]) + ")");
 	}
 	delay(100);
-	// Threads::yield();
+	Threads::yield();
 }
 
 void loop() {
-	// Serial.println("Loop"); Threads::yield();
+	Serial.println("Loop");
+	// tdelay(100);
 }

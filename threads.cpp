@@ -30,22 +30,17 @@ namespace Threads {
 		newThread->stackbase = newStack;
 		
 		// Get adjusted stack pointer and write entry address
-		uint8_t* stackptr = initStack(newStack);
+		uint8_t* stackptr = initStack(newStack,func);
 		Serial.println("SB: " + String((uint16_t)newStack));
 		Serial.println("SP: " + String((uint16_t) stackptr));
 		
 		uint16_t entryAddress = (uint16_t) func;
 		
-		// Because function pointers are big-endian, but ints are little-endian
-		stackptr[0] = (uint8_t) entryAddress;
-		stackptr[-1] = (uint8_t) (entryAddress >> 8);
-		stackptr -= 1;
-
 		newThread->stackptr = (uint16_t) stackptr;
 		
 		// Insert the new thread into the queue
-		newThread->next = currentThread;
 		getLastThread()->next = newThread;
+		newThread->next = currentThread;
 		
 		// Return PID for management purposes
 		return newThread->pid;
@@ -86,7 +81,7 @@ namespace Threads {
 		return thread;
 	}		
 	
-	uint8_t *initStack(uint8_t* stackbase) {
+	uint8_t *initStack(uint8_t* stackbase, void (*entry)(void)) {
 		// We need to jump to the top of the stack and need a pointer
 		uint8_t *ptr = (uint8_t*) (stackbase + settings.stackSize - 1);
 		
@@ -94,6 +89,12 @@ namespace Threads {
 		uint16_t exitAddress = (uint16_t) Threads::exit;
 		ptr[0] = (uint8_t) exitAddress;
 		ptr[-1] = (uint8_t) (exitAddress >> 8);
+		ptr -= 2;
+		
+		// Write entry address
+		uint16_t entryAddress = (uint16_t) entry;
+		ptr[0] = (uint8_t) entryAddress;
+		ptr[-1] = (uint8_t) (entryAddress >> 8);
 		ptr -= 2;
 		
 		// Simulate 32 pushed registers
