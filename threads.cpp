@@ -1,54 +1,90 @@
+#include <Arduino.h>
 #include <avr/io.h>
 #include "threads.hpp"
 #include "stack_magic.hpp"
-
-#define RETURN_ADDRESS_OFFSET 1
 
 namespace Threads {
 	struct Settings settings;
 	
 	Thread *currentThread;
 	
-	// Public management functions
+	// Primary management functions
 	void init(uint16_t stackSize) {
 		settings.stackSize = stackSize;
-		
 		currentThread = new Thread;
 		currentThread->pid = 0;
-		currentThread->sreg = SREG;
-		currentThread->address = 0;
 		currentThread->stackptr = SP;
-		currentThread->stackbase = RAMEND;
+		currentThread->stackbase = (uint8_t*) RAMEND;
 		currentThread->next = currentThread;
 	}
 	
-	uint16_t createThread(void (*func)(void)) {
-		// Convert address from little to big endian
-		uint16_t newAddress = (uint16_t) func;
-		uint8_t high = newAddress >> 8, low = (uint8_t) newAddress;
-		newAddress = low << 8 | high;
-		
-		// Allocate resources
+	PID createThread(void (*func)(void)) {
+		// Allocate required resources
 		uint8_t *newStack = new uint8_t[settings.stackSize];
-		
-		// Setup new thread
 		Thread *newThread = new Thread;
+		
+		// Prepare thread
 		newThread->pid = getNextPID();
-		newThread->sreg = SREG;
-		newThread->address = newAddress;
-		newThread->stackptr = (uint16_t) newStack + settings.stackSize;
-		newThread->stackbase = (uint16_t) newStack;
-		newThread->next = (Thread*) currentThread;
+		newThread->stackbase = newStack;
+		
+		// Get adjusted stack pointer and write entry address
+		uint8_t* stackptr = initStack(newStack,func);
+		newThread->stackptr = (uint16_t) stackptr;
+		
+		// Insert the new thread into the queue
 		getLastThread()->next = newThread;
+		newThread->next = currentThread;
+		
+		// Return PID for management purposes
 		return newThread->pid;
 	}
+	
+	void destroyThread(PID pid) {
+		// Get selected thread
+		Thread *selected = getThreadByPID(pid);
+		if (selected == nullptr) {
+			return;
+		}
+		
+		// Get previous thread and close gap in queue
+		Thread *prev = currentThread;
+		while (prev->next != selected) {
+			prev = prev->next;
+		}
+				
+		prev->next = selected->next;
+		
+		// Free allocated memory for stack and thread
+		delete selected->stackbase;
+		delete selected;		
+	}
+	
+	void yield() {
+		SM_SAVE_CONTEXT()
 
-	// Private management functions
-	uint16_t getNextPID() {
+		// Save stack of current thread
+		currentThread->stackptr = SP;
+		
+		// Switch threads
+		currentThread = currentThread->next;
+		
+		// Restore stack of currentThread
+		// As this is a critical 16 bit value, we cannot let interrupts occur
+		asm("cli");
+		SP = currentThread->stackptr;
+		
+		SM_RESTORE_CONTEXT()
+	}
+	
+	// Secondary management functions
+	PID getNextPID() {
 		uint16_t highestPID = 0;
 		Thread *thread = currentThread;
-		while (thread->pid > highestPID) {
+		while (thread->next != currentThread) {
 			thread = thread->next;
+			if (thread->pid > highestPID) {
+				highestPID = thread->pid;
+			}
 		}
 		return highestPID + 1;
 	}
@@ -61,30 +97,50 @@ namespace Threads {
 		return thread;
 	}		
 	
-	void switchThread() {
-		uint16_t *ptr;
-
-		ptr = (uint16_t*)(SP + RETURN_ADDRESS_OFFSET);
+	uint8_t *initStack(uint8_t* stackbase, void (*entry)(void)) {
+		// We need to jump to the top of the stack and need a pointer
+		uint8_t *ptr = (uint8_t*) (stackbase + settings.stackSize - 1);
 		
-		// Save current state
-		currentThread->sreg = SREG;
-		currentThread->address = ptr[0];
-		currentThread->stackptr = SP;
+		// Write exit return address
+		uint16_t exitAddress = (uint16_t) Threads::exit;
+		ptr[0] = (uint8_t) exitAddress;
+		ptr[-1] = (uint8_t) (exitAddress >> 8);
+		ptr -= 2;
 		
-		// Switch to next thread
-		currentThread = currentThread->next;
+		// Write entry address
+		uint16_t entryAddress = (uint16_t) entry;
+		ptr[0] = (uint8_t) entryAddress;
+		ptr[-1] = (uint8_t) (entryAddress >> 8);
+		ptr -= 2;
 		
-		// Restore state
-		asm("cli");
-		SP = currentThread->stackptr;
-		// asm("sei");
-		*((uint16_t*)(SP + RETURN_ADDRESS_OFFSET)) = currentThread->address;
-		SREG = currentThread->sreg;		
+		// Simulate 32 pushed registers
+		for (int i = 0; i < 32; i++) {
+			ptr[-i] = 0;
+		}
+		ptr -= 32;
+		
+		// Write pushed SREG
+		ptr[0] = SREG;
+		ptr--;
+		
+		// This should be it
+		return ptr;
 	}
-	
-	void yield() {
-		SM_PUSH_ALL_REGISTERS()
-		Threads::switchThread();
-		SM_POP_ALL_REGISTERS()
+		
+	void exit(void) {
+		while (1) {
+			Threads::yield();
+		}
+	}	
+
+	Thread *getThreadByPID(PID pid) {
+		Thread *thread = currentThread;
+		while (thread->next != currentThread) {
+			thread = thread->next;
+			if (thread->pid == pid) {
+				return thread;
+			}
+		}
+		return nullptr;
 	}
 }
