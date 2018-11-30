@@ -3,8 +3,6 @@
 #include "threads.hpp"
 #include "stack_magic.hpp"
 
-#define RETURN_ADDRESS_OFFSET 1
-
 namespace Threads {
 	struct Settings settings;
 	
@@ -28,8 +26,6 @@ namespace Threads {
 		// Prepare thread
 		newThread->pid = getNextPID();
 		newThread->stackbase = newStack;
-		
-		Serial.println("New PID: " + String(newThread->pid));
 		
 		// Get adjusted stack pointer and write entry address
 		uint8_t* stackptr = initStack(newStack,func);
@@ -55,19 +51,12 @@ namespace Threads {
 		while (prev->next != selected) {
 			prev = prev->next;
 		}
-		
-		Serial.println("Selected:" + String((uint16_t) selected,HEX));
-		Serial.println("Prev:" + String((uint16_t) prev,HEX));
-		Serial.println("Prev->next:" + String((uint16_t) prev->next,HEX));
-		Serial.println("Prev->next->next:" + String((uint16_t) prev->next->next,HEX));
-		
-		
+				
 		prev->next = selected->next;
-		Serial.println("Prev->next:" + String((uint16_t) prev->next,HEX));
 		
-		// // Free allocated memory for stack and thread
-		// delete selected->stackbase;
-		// delete selected;		
+		// Free allocated memory for stack and thread
+		delete selected->stackbase;
+		delete selected;		
 	}
 	
 	void yield() {

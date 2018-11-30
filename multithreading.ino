@@ -57,5 +57,6 @@ void loop() {
 		Serial.println("Destroyed worker thread!");
 		workerDone = false;
 	}
-	tdelay(100);
+	Serial.println("Loop!");
+	tdelay(500);
 }
