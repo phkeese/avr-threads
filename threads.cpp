@@ -14,6 +14,7 @@ namespace Threads {
 	void init(uint16_t stackSize) {
 		settings.stackSize = stackSize;
 		currentThread = new Thread;
+		// Serial.println("Initial Thread: 0x" + String((uint16_t) currentThread,HEX));
 		currentThread->pid = 0;
 		currentThread->stackptr = SP;
 		currentThread->stackbase = (uint8_t*) RAMEND;
@@ -23,7 +24,7 @@ namespace Threads {
 	uint16_t createThread(void (*func)(void)) {
 		// Allocate required resources
 		uint8_t *newStack = new uint8_t[settings.stackSize];
-		Thread *newThread = {0};
+		Thread *newThread = new Thread;
 		
 		// Prepare thread
 		newThread->pid = getNextPID();
@@ -49,16 +50,17 @@ namespace Threads {
 	void yield() {
 		SM_SAVE_CONTEXT()
 		
-		// Save stack of current thread
-		asm("cli");
-		currentThread->stackptr = SP;
+		Threads::switchContext();
+		// // Save stack of current thread
+		// asm("cli");
+		// currentThread->stackptr = SP;
 		
-		// Switch threads
-		currentThread = currentThread->next;
+		// // Switch threads
+		// currentThread = currentThread->next;
 		
-		// Restore stack of currentThread
-		asm("cli");
-		SP = currentThread->stackptr;
+		// // Restore stack of currentThread
+		// asm("cli");
+		// SP = currentThread->stackptr;
 		
 		SM_RESTORE_CONTEXT()
 	}
@@ -116,4 +118,12 @@ namespace Threads {
 			Threads::yield();
 		}
 	}
+	
+	void switchContext(void) {
+		currentThread->stackptr = SP;
+		currentThread = currentThread->next;
+		asm("cli");
+		SP = currentThread->stackptr;
+	}
+	
 }
