@@ -43,7 +43,7 @@ void setup() {
 	while (thread->next != Threads::currentThread) {
 		thread = thread->next;
 		Serial.println("[" + String(thread->pid) + "]:0x" + String((uint16_t) thread,HEX));
-	}		
+	}
 }
 
 int count = 0;
