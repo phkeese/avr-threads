@@ -14,7 +14,6 @@ namespace Threads {
 	void init(uint16_t stackSize) {
 		settings.stackSize = stackSize;
 		currentThread = new Thread;
-		// Serial.println("Initial Thread: 0x" + String((uint16_t) currentThread,HEX));
 		currentThread->pid = 0;
 		currentThread->stackptr = SP;
 		currentThread->stackbase = (uint8_t*) RAMEND;
@@ -32,11 +31,6 @@ namespace Threads {
 		
 		// Get adjusted stack pointer and write entry address
 		uint8_t* stackptr = initStack(newStack,func);
-		Serial.println("SB: " + String((uint16_t)newStack));
-		Serial.println("SP: " + String((uint16_t) stackptr));
-		
-		uint16_t entryAddress = (uint16_t) func;
-		
 		newThread->stackptr = (uint16_t) stackptr;
 		
 		// Insert the new thread into the queue
@@ -49,18 +43,17 @@ namespace Threads {
 		
 	void yield() {
 		SM_SAVE_CONTEXT()
+
+		// Save stack of current thread
+		currentThread->stackptr = SP;
 		
-		Threads::switchContext();
-		// // Save stack of current thread
-		// asm("cli");
-		// currentThread->stackptr = SP;
+		// Switch threads
+		currentThread = currentThread->next;
 		
-		// // Switch threads
-		// currentThread = currentThread->next;
-		
-		// // Restore stack of currentThread
-		// asm("cli");
-		// SP = currentThread->stackptr;
+		// Restore stack of currentThread
+		// As this is a critical 16 bit value, we cannot let interrupts occur
+		asm("cli");
+		SP = currentThread->stackptr;
 		
 		SM_RESTORE_CONTEXT()
 	}

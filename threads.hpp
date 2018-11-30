@@ -27,7 +27,6 @@ namespace Threads {
 	uint16_t getNextPID();
 	Thread *getLastThread();
 	uint8_t *initStack(uint8_t* stackbase, void (*entry)(void));
-	void switchContext(void);
 	
 	// Primary management functions
 	__attribute((noinline)) void init(uint16_t stackSize);
