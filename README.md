@@ -7,10 +7,10 @@
 - Destroy threads after use
 
 # Easy to use
-To get ready for using threads, simply call `Threads::init(stackSize);`
-To create a new thread, call `Threads::createThread(newThread);`
-To switch to the next thread, call `Threads::yield();`
-To destroy another thread, call `Threads::destroyThread(pid);`
+To get ready for using threads, simply call `Threads::init(stackSize);`  
+To create a new thread, call `Threads::createThread(newThread);`  
+To switch to the next thread, call `Threads::yield();`  
+To destroy another thread, call `Threads::destroyThread(pid);`  
 
 A simple program might look like this:
 ```
@@ -43,7 +43,7 @@ int main(void) {
 
 # Arduino-compatible
 Threads does not use any timers or other peripherals, so using it with the Arduino IDE is as simple as including the header. 
-An example is provided in `multithreading.ino`
+An example is provided in `multithreading.ino`  
 ***Caution: Serial communication should be used sparringly, some functions will block other threads from running***
 
 # Planned features:
