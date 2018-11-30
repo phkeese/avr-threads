@@ -29,6 +29,8 @@ namespace Threads {
 		newThread->pid = getNextPID();
 		newThread->stackbase = newStack;
 		
+		Serial.println("New PID: " + String(newThread->pid));
+		
 		// Get adjusted stack pointer and write entry address
 		uint8_t* stackptr = initStack(newStack,func);
 		newThread->stackptr = (uint16_t) stackptr;
@@ -54,11 +56,18 @@ namespace Threads {
 			prev = prev->next;
 		}
 		
-		prev->next = selected->next;
+		Serial.println("Selected:" + String((uint16_t) selected,HEX));
+		Serial.println("Prev:" + String((uint16_t) prev,HEX));
+		Serial.println("Prev->next:" + String((uint16_t) prev->next,HEX));
+		Serial.println("Prev->next->next:" + String((uint16_t) prev->next->next,HEX));
 		
-		// Free allocated memory for stack and thread
-		delete selected->stackbase;
-		delete selected;		
+		
+		prev->next = selected->next;
+		Serial.println("Prev->next:" + String((uint16_t) prev->next,HEX));
+		
+		// // Free allocated memory for stack and thread
+		// delete selected->stackbase;
+		// delete selected;		
 	}
 	
 	void yield() {
@@ -82,8 +91,11 @@ namespace Threads {
 	PID getNextPID() {
 		uint16_t highestPID = 0;
 		Thread *thread = currentThread;
-		while (thread->pid > highestPID) {
+		while (thread->next != currentThread) {
 			thread = thread->next;
+			if (thread->pid > highestPID) {
+				highestPID = thread->pid;
+			}
 		}
 		return highestPID + 1;
 	}
