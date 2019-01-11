@@ -1,4 +1,4 @@
-# Threads v0.6
+# Threads v1.0
  A cooperative multithreading library for AVR
  
 # Features
