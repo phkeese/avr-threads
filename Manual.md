@@ -1,6 +1,6 @@
 # Manual
 ### 1. Setup
-To use Threads, you have to include `threads.hpp"` in your source file and have `stack_magic.hpp` in the same directory. Before calling `Threads::yield` the first time, you have to call `Threads::init(stackSize)` with `stackSize` being the maximum number of bytes each thread should get for its stack. Upon yielding, a thread stores all registers (r0 - r31) including the SREG on the stack. Also, upon creating a thread, the function address of the thread is stored on the stack, so you will have to assign a stack size of at least 32 + 1 + 2 on CPUs with 16 bit program counter.
+To use Threads, you have to include `threads.hpp"` in your source file and have `stack_magic.hpp` in the same directory. Before calling `Threads::yield` the first time, you have to call `Threads::init(stackSize)` with `stackSize` being the maximum number of bytes each thread should get for its stack. Upon yielding, a thread stores all registers (r0 - r31) including the SREG on the stack. Also, upon creating a thread, the function address of the thread and the final exit loop are stored on the stack, so you will have to assign a stack size of at least 32 + 1 + 4 on CPUs with 16 bit program counter.
 Calling `Threads::yield` without calling `Threads::init` first might cause some unexpected behavior and lead to crashes.
 
 Your `main` should look something like this:
